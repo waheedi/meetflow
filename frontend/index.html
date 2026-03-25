@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TechFlow Dev Team Simulator</title>
+    <link rel="stylesheet" href="/static/styles.css?v=20260325-ops2" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <h1>Dev Team Simulator</h1>
+        <p class="subtitle">TechFlow - Team Lead Engineering Challenge</p>
+
+        <label for="repoPath">Repository Path Or URL</label>
+        <input id="repoPath" type="text" placeholder="/absolute/path OR https://git-or-archive-url" />
+        <button id="startSessionBtn">Start Session</button>
+
+        <div class="session-box">
+          <div><strong>Session:</strong> <span id="sessionId">-</span></div>
+          <div><strong>Stack:</strong> <span id="stackSummary">-</span></div>
+          <div><strong>Source:</strong> <span id="sourceSummary">-</span></div>
+          <div><strong>Total Cost:</strong> <span id="costCounter">$0.000000</span></div>
+          <div><strong>Total Tokens:</strong> <span id="tokenCounter">0</span></div>
+        </div>
+
+        <div class="legend">
+          <h2>Agents</h2>
+          <ul id="agentLegend"></ul>
+        </div>
+      </aside>
+
+      <main class="chat-area">
+        <header class="chat-header">
+          <div class="status-row">
+            <span id="connectionStatus" class="pill offline">Offline</span>
+            <div id="processingIndicator" class="processing-indicator idle" aria-live="polite">
+              <svg class="processing-svg" viewBox="0 0 40 16" role="img" aria-label="Processing indicator">
+                <circle class="processing-dot dot-1" cx="8" cy="8" r="3"></circle>
+                <circle class="processing-dot dot-2" cx="20" cy="8" r="3"></circle>
+                <circle class="processing-dot dot-3" cx="32" cy="8" r="3"></circle>
+              </svg>
+              <div class="processing-text">
+                <span id="currentSpeaker" class="current-speaker">No active turn</span>
+                <span id="nextSpeaker" class="next-speaker">Start a session to begin</span>
+              </div>
+            </div>
+            <span id="thinkingStatus" class="thinking">Idle</span>
+          </div>
+        </header>
+
+        <section id="messages" class="messages"></section>
+
+        <footer class="composer">
+          <textarea id="messageInput" placeholder="Ask the team about architecture, estimates, risks, or implementation plan..." rows="3"></textarea>
+          <button id="sendBtn" disabled>Send</button>
+        </footer>
+      </main>
+    </div>
+
+    <script src="/static/app.js?v=20260325-ops2"></script>
+  </body>
+</html>
