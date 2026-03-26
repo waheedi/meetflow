@@ -58,6 +58,15 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+@app.on_event("startup")
+async def preload_pricing_catalog() -> None:
+    models = {
+        settings.llm_model_agent,
+        settings.llm_model_synthesis,
+    }
+    await llm_client.preload_pricing_for_models(models)
+
+
 @app.get("/api/health")
 async def health() -> dict[str, str]:
     return {"status": "ok", "app": settings.app_name}

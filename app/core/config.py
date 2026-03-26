@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     llm_synthesis_max_output_tokens: int = Field(default=8192, alias="LLM_SYNTHESIS_MAX_OUTPUT_TOKENS")
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_base_url: Optional[str] = Field(default=None, alias="OPENAI_BASE_URL")
+    openai_pricing_docs_url: str = Field(
+        default="https://developers.openai.com/api/docs/pricing?latest-pricing=standard",
+        alias="OPENAI_PRICING_DOCS_URL",
+    )
 
     request_timeout_seconds: float = Field(default=45.0, alias="REQUEST_TIMEOUT_SECONDS")
     llm_max_retries: int = Field(default=3, alias="LLM_MAX_RETRIES")

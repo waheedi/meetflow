@@ -91,7 +91,8 @@ Important values:
 - `LLM_AGENT_MAX_OUTPUT_TOKENS` (default `8192`)
 - `LLM_SYNTHESIS_MAX_OUTPUT_TOKENS` (default `8192`)
 - `OPENAI_API_KEY`
-- Model pricing is fetched at runtime from OpenAI endpoint `/v1/models/pricing` for the active model IDs
+- `OPENAI_PRICING_DOCS_URL` (startup pricing source; default OpenAI pricing docs URL)
+- Startup pricing preload parses docs pricing page for configured models (`LLM_MODEL_AGENT`, `LLM_MODEL_SYNTHESIS`)
 - `LLM_MAX_RETRIES`, `REQUEST_TIMEOUT_SECONDS` for robustness
 - `RESOLVER_CACHE_DIR` for downloaded/cloned source caching
 - `RESOLVER_MAX_DOWNLOAD_BYTES`, `RESOLVER_MAX_EXTRACT_BYTES`, `RESOLVER_MAX_EXTRACT_FILES` for extraction safety limits
@@ -106,13 +107,28 @@ Once the app is running, use the built-in OpenAPI docs:
 
 If you run on a different port, replace `8000` accordingly.
 
+## Running Tests
+
+Run the unit test suite from project root:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+To verify live model pricing lookup against OpenAI (requires `OPENAI_API_KEY` in shell):
+
+```bash
+python3 -m unittest tests.test_live_pricing -v
+```
+
 ## Notes on Reliability
 
 - LLM calls use retries with exponential backoff for transient provider failures.
 - Failures are surfaced as structured chat errors without app crashes.
 - Conversation state is protected by per-session lock + serialized input queue.
 - Archive extraction blocks unsafe paths/symlinks and enforces size/file-count limits.
-- Pricing lookups are cached in memory per model; if pricing endpoint is unavailable, cost falls back to `0.0` with a warning log.
+- Pricing is preloaded at startup from the OpenAI pricing docs page and cached in memory for active models.
+- If docs parsing fails for a model, runtime fallback pricing keeps cost counters non-zero.
 
 ## Debugging LLM Output
 

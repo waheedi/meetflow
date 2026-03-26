@@ -25,6 +25,9 @@ const els = {
   sourceSummary: document.getElementById("sourceSummary"),
   costCounter: document.getElementById("costCounter"),
   tokenCounter: document.getElementById("tokenCounter"),
+  inputTokenCounter: document.getElementById("inputTokenCounter"),
+  outputTokenCounter: document.getElementById("outputTokenCounter"),
+  lastUsageCounter: document.getElementById("lastUsageCounter"),
   messages: document.getElementById("messages"),
   sendBtn: document.getElementById("sendBtn"),
   messageInput: document.getElementById("messageInput"),
@@ -215,6 +218,35 @@ function appendMessage(message) {
   els.messages.scrollTop = els.messages.scrollHeight;
 }
 
+function updateUsageCounters(payload) {
+  const totalInputTokens = Number(payload.total_input_tokens || 0);
+  const totalOutputTokens = Number(payload.total_output_tokens || 0);
+  const totalTokens = totalInputTokens + totalOutputTokens;
+
+  els.costCounter.textContent = `$${Number(payload.total_cost_usd || 0).toFixed(6)}`;
+  els.tokenCounter.textContent = String(totalTokens);
+  if (els.inputTokenCounter) {
+    els.inputTokenCounter.textContent = String(totalInputTokens);
+  }
+  if (els.outputTokenCounter) {
+    els.outputTokenCounter.textContent = String(totalOutputTokens);
+  }
+
+  if (!els.lastUsageCounter) {
+    return;
+  }
+  const lastUsage = payload.last_usage;
+  if (!lastUsage) {
+    els.lastUsageCounter.textContent = "-";
+    return;
+  }
+  const deltaCost = Number(lastUsage.cost_usd || 0).toFixed(6);
+  const deltaIn = Number(lastUsage.input_tokens || 0);
+  const deltaOut = Number(lastUsage.output_tokens || 0);
+  const agent = lastUsage.agent || "Unknown";
+  els.lastUsageCounter.textContent = `+$${deltaCost} (${agent}, +${deltaIn} in / +${deltaOut} out)`;
+}
+
 function connectStream(id) {
   if (eventSource) {
     eventSource.close();
@@ -242,9 +274,7 @@ function connectStream(id) {
 
   eventSource.addEventListener("cost_update", (event) => {
     const payload = JSON.parse(event.data);
-    els.costCounter.textContent = `$${Number(payload.total_cost_usd || 0).toFixed(6)}`;
-    const totalTokens = Number(payload.total_input_tokens || 0) + Number(payload.total_output_tokens || 0);
-    els.tokenCounter.textContent = String(totalTokens);
+    updateUsageCounters(payload);
   });
 
   eventSource.addEventListener("agent_error", (event) => {
@@ -282,6 +312,15 @@ function stopSession() {
   els.sourceSummary.textContent = "-";
   els.costCounter.textContent = "$0.000000";
   els.tokenCounter.textContent = "0";
+  if (els.inputTokenCounter) {
+    els.inputTokenCounter.textContent = "0";
+  }
+  if (els.outputTokenCounter) {
+    els.outputTokenCounter.textContent = "0";
+  }
+  if (els.lastUsageCounter) {
+    els.lastUsageCounter.textContent = "-";
+  }
   updateLiveThinkingBox();
 }
 
@@ -296,9 +335,11 @@ async function loadSnapshot(id) {
     appendMessage(message);
   }
   updateLiveThinkingBox();
-  const totalTokens = Number(data.total_input_tokens || 0) + Number(data.total_output_tokens || 0);
-  els.tokenCounter.textContent = String(totalTokens);
-  els.costCounter.textContent = `$${Number(data.total_cost_usd || 0).toFixed(6)}`;
+  updateUsageCounters({
+    total_input_tokens: data.total_input_tokens,
+    total_output_tokens: data.total_output_tokens,
+    total_cost_usd: data.total_cost_usd,
+  });
 }
 
 async function startSession() {

@@ -12,7 +12,13 @@ from openai import APIConnectionError, APIError, APITimeoutError, AsyncOpenAI, B
 
 from app.core.config import Settings
 from app.core.costing import compute_cost_usd
-from app.core.pricing import PricingLookupError, resolve_model_pricing_from_payload
+from app.core.pricing import (
+    PricingLookupError,
+    parse_pricing_docs_rows,
+    resolve_fallback_model_pricing,
+    resolve_model_pricing_from_docs_catalog,
+    resolve_model_pricing_from_payload,
+)
 from app.schemas.models import UsageRecord
 
 
@@ -52,6 +58,40 @@ class LLMClient:
             return
 
         self._client = AsyncOpenAI(api_key=settings.openai_api_key, base_url=settings.openai_base_url)
+
+    async def preload_pricing_for_models(self, models: set[str]) -> None:
+        targets = {m.strip() for m in models if m and m.strip()}
+        if not targets:
+            return
+
+        try:
+            timeout = self.settings.request_timeout_seconds
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.get(self.settings.openai_pricing_docs_url)
+                response.raise_for_status()
+            catalog = parse_pricing_docs_rows(response.text)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Startup pricing preload from docs failed: %s", exc)
+            return
+
+        loaded = 0
+        async with self._pricing_cache_lock:
+            for model in targets:
+                resolved = resolve_model_pricing_from_docs_catalog(model, catalog)
+                if resolved is None:
+                    continue
+                self._pricing_cache[model] = resolved
+                loaded += 1
+                logger.info(
+                    "Startup pricing preload model=%s input_per_1m=%s output_per_1m=%s",
+                    model,
+                    resolved[0],
+                    resolved[1],
+                )
+        if loaded < len(targets):
+            missing = sorted(targets - set(self._pricing_cache.keys()))
+            if missing:
+                logger.warning("Startup pricing preload missing models=%s", ", ".join(missing))
 
     async def generate_json(
         self,
@@ -246,11 +286,29 @@ class LLMClient:
                 return 0.0, 0.0
 
             try:
-                payload = await self._fetch_pricing_payload(model=model)
+                payload, source_endpoint = await self._fetch_pricing_payload(model=model)
                 resolved = resolve_model_pricing_from_payload(model, payload)
+                logger.info(
+                    "Pricing resolved model=%s source=%s input_per_1m=%s output_per_1m=%s",
+                    model,
+                    source_endpoint,
+                    resolved[0],
+                    resolved[1],
+                )
                 self._pricing_cache[model] = resolved
                 return resolved
             except (httpx.HTTPError, PricingLookupError, ValueError) as exc:
+                fallback = resolve_fallback_model_pricing(model)
+                if fallback is not None:
+                    logger.warning(
+                        "Pricing endpoint failed for model=%s; using fallback rates input_per_1m=%s output_per_1m=%s reason=%s",
+                        model,
+                        fallback[0],
+                        fallback[1],
+                        exc,
+                    )
+                    self._pricing_cache[model] = fallback
+                    return fallback
                 logger.warning(
                     "Pricing lookup failed for model=%s via endpoint; falling back to zero-cost estimate. reason=%s",
                     model,
@@ -258,26 +316,40 @@ class LLMClient:
                 )
                 return 0.0, 0.0
 
-    async def _fetch_pricing_payload(self, *, model: str) -> dict[str, Any]:
+    async def _fetch_pricing_payload(self, *, model: str) -> tuple[dict[str, Any], str]:
         base_url = (self.settings.openai_base_url or "https://api.openai.com/v1").rstrip("/")
-        endpoint = f"{base_url}/models/pricing"
         headers = {
             "Authorization": f"Bearer {self.settings.openai_api_key}",
             "Content-Type": "application/json",
         }
         timeout = self.settings.request_timeout_seconds
+        candidates = [
+            (f"{base_url}/models/pricing", {"model": model}),
+            (f"{base_url}/models/pricing", None),
+            (f"{base_url}/models/{model}", None),
+        ]
+        failures: list[str] = []
 
         async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.get(endpoint, headers=headers, params={"model": model})
-            if response.status_code >= 400:
-                # Compatibility fallback if endpoint does not accept model query filtering.
-                response = await client.get(endpoint, headers=headers)
-            response.raise_for_status()
+            for endpoint, params in candidates:
+                response = await client.get(endpoint, headers=headers, params=params)
+                if response.status_code >= 400:
+                    body_preview = (response.text or "")[:220].replace("\n", " ")
+                    failures.append(
+                        f"{endpoint} status={response.status_code} body={body_preview!r}"
+                    )
+                    continue
 
-        payload = response.json()
-        if not isinstance(payload, dict):
-            raise ValueError("Pricing endpoint returned a non-object payload.")
-        return payload
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    failures.append(f"{endpoint} returned non-object JSON payload.")
+                    continue
+                return payload, endpoint
+
+        raise httpx.HTTPError(
+            "All pricing endpoints failed for model="
+            f"{model}. Attempts: {' | '.join(failures) if failures else '(none)'}"
+        )
 
     async def _create_response(
         self,
