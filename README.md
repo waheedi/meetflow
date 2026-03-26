@@ -11,7 +11,7 @@
 2. From the project root, create a virtual environment and install dependencies:
 
 ```bash
-cd ./techflow-dev-team-simulator
+cd ./techflow
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
