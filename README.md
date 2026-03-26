@@ -91,7 +91,7 @@ Important values:
 - `LLM_AGENT_MAX_OUTPUT_TOKENS` (default `8192`)
 - `LLM_SYNTHESIS_MAX_OUTPUT_TOKENS` (default `8192`)
 - `OPENAI_API_KEY`
-- Model pricing is defined in `app/core/pricing.py`
+- Model pricing is fetched at runtime from OpenAI endpoint `/v1/models/pricing` for the active model IDs
 - `LLM_MAX_RETRIES`, `REQUEST_TIMEOUT_SECONDS` for robustness
 - `RESOLVER_CACHE_DIR` for downloaded/cloned source caching
 - `RESOLVER_MAX_DOWNLOAD_BYTES`, `RESOLVER_MAX_EXTRACT_BYTES`, `RESOLVER_MAX_EXTRACT_FILES` for extraction safety limits
@@ -112,6 +112,7 @@ If you run on a different port, replace `8000` accordingly.
 - Failures are surfaced as structured chat errors without app crashes.
 - Conversation state is protected by per-session lock + serialized input queue.
 - Archive extraction blocks unsafe paths/symlinks and enforces size/file-count limits.
+- Pricing lookups are cached in memory per model; if pricing endpoint is unavailable, cost falls back to `0.0` with a warning log.
 
 ## Debugging LLM Output
 

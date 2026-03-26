@@ -11,6 +11,7 @@ const AGENTS = {
   Operator: { color: "#0EA5E9", avatar: "OP" },
 };
 const SPEAKER_SEQUENCE = ["Sarah", "Kai", "Tom", "Lara", "Jonas", "Andreas", "Nina", "Facilitator"];
+const LIVE_THINKING_ID = "liveThinkingBox";
 
 let sessionId = null;
 let eventSource = null;
@@ -123,11 +124,61 @@ function updateThinkingLabel() {
   if (!activeAgent) {
     els.thinkingStatus.textContent = "Idle";
     updateProcessingIndicator();
+    updateLiveThinkingBox();
     return;
   }
   const next = nextSpeakerAfter(activeAgent);
   els.thinkingStatus.textContent = next ? `Thinking: ${activeAgent} (next: ${next})` : `Thinking: ${activeAgent}`;
   updateProcessingIndicator();
+  updateLiveThinkingBox();
+}
+
+function buildLiveThinkingBox(agentName, nextAgent) {
+  const wrapper = document.createElement("article");
+  wrapper.className = "msg thinking-live";
+  wrapper.id = LIVE_THINKING_ID;
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.appendChild(avatarNode(agentName));
+  const author = document.createElement("strong");
+  author.textContent = agentName;
+  meta.appendChild(author);
+
+  const content = document.createElement("div");
+  content.className = "content";
+  const dots = document.createElement("span");
+  dots.className = "typing-dots";
+  dots.setAttribute("aria-hidden", "true");
+  content.appendChild(dots);
+  const text = document.createElement("span");
+  text.textContent = `${agentName} is drafting a response.${nextAgent ? ` Up next: ${nextAgent}.` : ""}`;
+  content.appendChild(text);
+
+  wrapper.appendChild(meta);
+  wrapper.appendChild(content);
+  return wrapper;
+}
+
+function updateLiveThinkingBox() {
+  const activeAgent = currentThinkingAgent();
+  const existing = document.getElementById(LIVE_THINKING_ID);
+
+  if (!activeAgent) {
+    if (existing) {
+      existing.remove();
+    }
+    return;
+  }
+
+  const next = nextSpeakerAfter(activeAgent);
+  const freshBox = buildLiveThinkingBox(activeAgent, next);
+
+  if (existing) {
+    existing.replaceWith(freshBox);
+  } else {
+    els.messages.appendChild(freshBox);
+  }
 }
 
 function appendMessage(message) {
@@ -155,7 +206,12 @@ function appendMessage(message) {
     wrapper.appendChild(refs);
   }
 
-  els.messages.appendChild(wrapper);
+  const liveThinkingBox = document.getElementById(LIVE_THINKING_ID);
+  if (liveThinkingBox) {
+    els.messages.insertBefore(wrapper, liveThinkingBox);
+  } else {
+    els.messages.appendChild(wrapper);
+  }
   els.messages.scrollTop = els.messages.scrollHeight;
 }
 
@@ -226,6 +282,7 @@ function stopSession() {
   els.sourceSummary.textContent = "-";
   els.costCounter.textContent = "$0.000000";
   els.tokenCounter.textContent = "0";
+  updateLiveThinkingBox();
 }
 
 async function loadSnapshot(id) {
@@ -238,6 +295,7 @@ async function loadSnapshot(id) {
   for (const message of data.messages) {
     appendMessage(message);
   }
+  updateLiveThinkingBox();
   const totalTokens = Number(data.total_input_tokens || 0) + Number(data.total_output_tokens || 0);
   els.tokenCounter.textContent = String(totalTokens);
   els.costCounter.textContent = `$${Number(data.total_cost_usd || 0).toFixed(6)}`;

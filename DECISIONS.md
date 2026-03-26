@@ -53,8 +53,8 @@ This log captures key implementation decisions and trade-offs made while buildin
 
 ## 9) Cost Tracking
 
-- Decision: Compute cumulative USD cost from API usage (`prompt_tokens`, `completion_tokens`) and configured pricing rates.
-- Trade-off: Accuracy depends on environment price config being kept current.
+- Decision: Compute cumulative USD cost from API usage (`prompt_tokens`, `completion_tokens`) and runtime model pricing fetched from OpenAI endpoint (`/v1/models/pricing`), keyed by the active env-selected model IDs.
+- Trade-off: Removes hardcoded pricing drift, but introduces dependency on provider pricing endpoint availability.
 
 
 ## 10) Failure Handling

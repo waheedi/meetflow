@@ -7,11 +7,12 @@ import random
 from dataclasses import dataclass
 from typing import Any
 
+import httpx
 from openai import APIConnectionError, APIError, APITimeoutError, AsyncOpenAI, BadRequestError, RateLimitError
 
 from app.core.config import Settings
 from app.core.costing import compute_cost_usd
-from app.core.pricing import resolve_model_pricing
+from app.core.pricing import PricingLookupError, resolve_model_pricing_from_payload
 from app.schemas.models import UsageRecord
 
 
@@ -38,6 +39,8 @@ class LLMClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
         self._client: AsyncOpenAI | None = None
+        self._pricing_cache: dict[str, tuple[float, float]] = {}
+        self._pricing_cache_lock = asyncio.Lock()
 
         if settings.mock_llm:
             return
@@ -125,7 +128,7 @@ class LLMClient:
                     )
 
                 input_tokens, output_tokens = self._extract_usage_tokens(response)
-                input_price_per_1m, output_price_per_1m = resolve_model_pricing(selected_model)
+                input_price_per_1m, output_price_per_1m = await self._resolve_model_pricing(selected_model)
                 cost = compute_cost_usd(
                     input_tokens,
                     output_tokens,
@@ -201,7 +204,7 @@ class LLMClient:
                     raise LLMCallError(f"LLM returned empty text output (finish_reason={finish_reason})")
 
                 input_tokens, output_tokens = self._extract_usage_tokens(response)
-                input_price_per_1m, output_price_per_1m = resolve_model_pricing(selected_model)
+                input_price_per_1m, output_price_per_1m = await self._resolve_model_pricing(selected_model)
                 cost = compute_cost_usd(
                     input_tokens,
                     output_tokens,
@@ -227,6 +230,54 @@ class LLMClient:
                 break
 
         raise LLMCallError(f"LLM text call failed after {attempt} attempt(s): {last_error}")
+
+    async def _resolve_model_pricing(self, model: str) -> tuple[float, float]:
+        cached = self._pricing_cache.get(model)
+        if cached is not None:
+            return cached
+
+        async with self._pricing_cache_lock:
+            cached = self._pricing_cache.get(model)
+            if cached is not None:
+                return cached
+
+            if not self.settings.openai_api_key:
+                logger.warning("Pricing lookup skipped for model=%s because OPENAI_API_KEY is not configured.", model)
+                return 0.0, 0.0
+
+            try:
+                payload = await self._fetch_pricing_payload(model=model)
+                resolved = resolve_model_pricing_from_payload(model, payload)
+                self._pricing_cache[model] = resolved
+                return resolved
+            except (httpx.HTTPError, PricingLookupError, ValueError) as exc:
+                logger.warning(
+                    "Pricing lookup failed for model=%s via endpoint; falling back to zero-cost estimate. reason=%s",
+                    model,
+                    exc,
+                )
+                return 0.0, 0.0
+
+    async def _fetch_pricing_payload(self, *, model: str) -> dict[str, Any]:
+        base_url = (self.settings.openai_base_url or "https://api.openai.com/v1").rstrip("/")
+        endpoint = f"{base_url}/models/pricing"
+        headers = {
+            "Authorization": f"Bearer {self.settings.openai_api_key}",
+            "Content-Type": "application/json",
+        }
+        timeout = self.settings.request_timeout_seconds
+
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            response = await client.get(endpoint, headers=headers, params={"model": model})
+            if response.status_code >= 400:
+                # Compatibility fallback if endpoint does not accept model query filtering.
+                response = await client.get(endpoint, headers=headers)
+            response.raise_for_status()
+
+        payload = response.json()
+        if not isinstance(payload, dict):
+            raise ValueError("Pricing endpoint returned a non-object payload.")
+        return payload
 
     async def _create_response(
         self,
