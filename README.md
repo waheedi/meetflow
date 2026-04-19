@@ -1,5 +1,5 @@
 # MeetFlow Dev Alignment Sim
-
+![Screenshot](/meetflow.png)
 ## Prerequisites
 
 - Python 3.11+
