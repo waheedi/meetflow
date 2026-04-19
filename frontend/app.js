@@ -1,16 +1,16 @@
 const AGENTS = {
-  Sarah: { color: "#D9480F", avatar: "SA" },
-  Kai: { color: "#1D4ED8", avatar: "KA" },
-  Tom: { color: "#6B7280", avatar: "TO" },
-  Lara: { color: "#15803D", avatar: "LA" },
-  Jonas: { color: "#7C3AED", avatar: "JO" },
-  Andreas: { color: "#B45309", avatar: "AN" },
-  Nina: { color: "#BE185D", avatar: "NI" },
-  Facilitator: { color: "#0F766E", avatar: "FC" },
-  System: { color: "#334155", avatar: "SY" },
-  Operator: { color: "#0EA5E9", avatar: "OP" },
+  Sarah: { color: "#D9480F", avatar: "SA", role: "Technical Team Lead" },
+  Kai: { color: "#1D4ED8", avatar: "KA", role: "Senior Backend Engineer" },
+  Tamer: { color: "#6B7280", avatar: "TA", role: "Senior Frontend Engineer" },
+  Lara: { color: "#15803D", avatar: "LA", role: "Full-Stack Engineer" },
+  Jonas: { color: "#7C3AED", avatar: "JO", role: "Product Manager" },
+  Belal: { color: "#B45309", avatar: "BE", role: "Head of Product" },
+  Michael: { color: "#BE185D", avatar: "MI", role: "CTO" },
+  Facilitator: { color: "#0F766E", avatar: "FC", role: "Facilitator" },
+  System: { color: "#334155", avatar: "SY", role: "System" },
+  Operator: { color: "#0EA5E9", avatar: "OP", role: "Operator" },
 };
-const SPEAKER_SEQUENCE = ["Sarah", "Kai", "Tom", "Lara", "Jonas", "Andreas", "Nina", "Facilitator"];
+const SPEAKER_SEQUENCE = ["Sarah", "Kai", "Tamer", "Lara", "Jonas", "Belal", "Michael", "Facilitator"];
 const LIVE_THINKING_ID = "liveThinkingBox";
 
 let sessionId = null;
@@ -40,14 +40,25 @@ const els = {
 };
 
 function initLegend() {
-  const names = ["Sarah", "Kai", "Tom", "Lara", "Jonas", "Andreas", "Nina"];
+  const names = ["Sarah", "Kai", "Tamer", "Lara", "Jonas", "Belal", "Michael"];
   for (const name of names) {
     const li = document.createElement("li");
     const badge = avatarNode(name);
+    const labelWrap = document.createElement("div");
+    labelWrap.className = "legend-labels";
+
     const text = document.createElement("span");
+    text.className = "legend-name";
     text.textContent = name;
+
+    const role = document.createElement("span");
+    role.className = "legend-role";
+    role.textContent = AGENTS[name]?.role || "Agent";
+
+    labelWrap.appendChild(text);
+    labelWrap.appendChild(role);
     li.appendChild(badge);
-    li.appendChild(text);
+    li.appendChild(labelWrap);
     els.agentLegend.appendChild(li);
   }
 }
@@ -184,6 +195,29 @@ function updateLiveThinkingBox() {
   }
 }
 
+function renderMarkdownToHtml(content) {
+  const raw = typeof content === "string" ? content : String(content ?? "");
+  if (!raw) {
+    return "";
+  }
+
+  if (!window.marked || !window.DOMPurify) {
+    return null;
+  }
+
+  try {
+    const html = window.marked.parse(raw, {
+      gfm: true,
+      breaks: true,
+      mangle: false,
+      headerIds: false,
+    });
+    return window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+  } catch (_err) {
+    return null;
+  }
+}
+
 function appendMessage(message) {
   const wrapper = document.createElement("article");
   wrapper.className = `msg ${message.role}`;
@@ -197,7 +231,12 @@ function appendMessage(message) {
 
   const content = document.createElement("div");
   content.className = "content";
-  content.textContent = message.content;
+  const rendered = renderMarkdownToHtml(message.content);
+  if (rendered === null) {
+    content.textContent = typeof message.content === "string" ? message.content : String(message.content ?? "");
+  } else {
+    content.innerHTML = rendered;
+  }
 
   wrapper.appendChild(meta);
   wrapper.appendChild(content);

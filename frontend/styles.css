@@ -120,6 +120,22 @@ button:disabled {
   font-size: 0.92rem;
 }
 
+.legend-labels {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.legend-name {
+  font-weight: 600;
+}
+
+.legend-role {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
 .avatar {
   width: 26px;
   height: 26px;
@@ -267,8 +283,60 @@ button:disabled {
 }
 
 .msg .content {
-  white-space: pre-wrap;
+  white-space: normal;
   line-height: 1.4;
+}
+
+.msg .content > :first-child {
+  margin-top: 0;
+}
+
+.msg .content > :last-child {
+  margin-bottom: 0;
+}
+
+.msg .content p,
+.msg .content ul,
+.msg .content ol,
+.msg .content pre,
+.msg .content blockquote,
+.msg .content h1,
+.msg .content h2,
+.msg .content h3,
+.msg .content h4 {
+  margin: 0.42rem 0;
+}
+
+.msg .content ul,
+.msg .content ol {
+  padding-left: 1.2rem;
+}
+
+.msg .content code {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, monospace;
+  font-size: 0.88em;
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 0.05rem 0.35rem;
+}
+
+.msg .content pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  overflow-x: auto;
+}
+
+.msg .content pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+
+.msg .content a {
+  color: #0369a1;
+  text-decoration: underline;
 }
 
 .msg .refs {

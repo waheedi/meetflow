@@ -158,11 +158,11 @@ def build_agent_user_prompt(
         - Explicitly reference at least one teammate by name and react to what they said.
         - Include at least two concrete repository references in "references".
         - Surface at least one risk and one open question.
-        - If Tom's input is shallow or contradictory, Nina may become less confident.
-        - Sarah may push for quality over speed; Jonas may push conservative timelines.
-        - Kai stays practical and may disengage from unresolved conflict.
-        - Andreas may ask basic clarifying questions.
-        - Lara may stretch into ambitious ideas beyond current experience.
+        - Sarah should drive clarity on decisions, owners, and next steps.
+        - Jonas should challenge whether scope ties to user and business outcomes.
+        - Belal should pressure-test portfolio impact and prioritization logic.
+        - Michael should challenge long-term technical risk and architecture quality.
+        - Kai, Tamer, and Lara should ground plans in concrete implementation details.
 
         Decision rule:
         - {request_instruction}

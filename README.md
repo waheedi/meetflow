@@ -1,4 +1,4 @@
-# TechFlow Dev Team Simulator
+# MeetFlow Dev Alignment Sim
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@
 2. From the project root, create a virtual environment and install dependencies:
 
 ```bash
-cd ./techflow
+cd ./meetflow
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -43,11 +43,19 @@ OPENAI_API_KEY="sk-.." uvicorn app.main:app --reload --port 8000
 4. Watch agent-by-agent discussion, facilitator convergence, and cumulative cost updates.
 5. Intervene anytime with additional operator messages.
 
-## What is TechFlow Dev Team Simulator
+## What Is MeetFlow
 
-Interactive multi-agent engineering team simulator for local codebase analysis.
+MeetFlow is an engineering alignment simulator that helps teams make better technical and product decisions before execution starts.
 
-The app models seven AI personas (Sarah, Kai, Tom, Lara, Jonas, Andreas, Nina) and runs a sequential group discussion grounded in real files from:
+It acts as a decision-support layer across three phases:
+
+- Before meeting: creates pre-read context, risks, and decision options from codebase evidence.
+- During meeting: keeps discussion focused on decisions and trade-offs instead of rediscovery.
+- After meeting: turns outcomes into owned actions (owner + due date + follow-ups).
+
+MeetFlow is the renamed continuation of the original TechFlow codebase, not a separate new project.
+
+The app models seven AI personas (Sarah, Kai, Tamer, Lara, Jonas, Belal, Michael) and runs a sequential group discussion grounded in real files from:
 - local folders
 - git repository URLs
 - archive sources (`.zip`, `.tar`, `.tar.gz`, `.tgz`, `.tar.bz2`, `.tar.xz`)

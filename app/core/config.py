@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "TechFlow Dev Team Simulator"
+    app_name: str = "MeetFlow Dev Alignment Sim"
     app_env: str = Field(default="dev", alias="APP_ENV")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     llm_retry_backoff_seconds: float = Field(default=1.5, alias="LLM_RETRY_BACKOFF_SECONDS")
 
     resolver_cache_dir: str = Field(
-        default="~/.cache/techflow-dev-team-simulator/sources",
+        default="~/.cache/meetflow-dev-alignment-sim/sources",
         alias="RESOLVER_CACHE_DIR",
     )
     resolver_download_timeout_seconds: float = Field(default=45.0, alias="RESOLVER_DOWNLOAD_TIMEOUT_SECONDS")
