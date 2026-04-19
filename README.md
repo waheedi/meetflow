@@ -53,7 +53,7 @@ It acts as a decision-support layer across three phases:
 - During meeting: keeps discussion focused on decisions and trade-offs instead of rediscovery.
 - After meeting: turns outcomes into owned actions (owner + due date + follow-ups).
 
-MeetFlow is the renamed continuation of the original TechFlow codebase, not a separate new project.
+MeetFlow is the renamed continuation of the original TechFlow codebase (which started as job-interview homework case).
 
 The app models seven AI personas (Sarah, Kai, Tamer, Lara, Jonas, Belal, Michael) and runs a sequential group discussion grounded in real files from:
 - local folders
@@ -158,3 +158,6 @@ For offline UI testing only:
 - Set `MOCK_LLM=true` in `.env`.
 - The simulator will emit synthetic responses with zero cost.
 - For real evaluation, keep `MOCK_LLM=false` and use a valid API key.
+
+## Todos
+- Make persona prompt editable on real-time runs via clicking on names and modal style editor
